@@ -21,7 +21,10 @@ Open `index.html` for the home screen. Tiles lead to `cars.html` and `animals.ht
 After the first open it works offline.
 
 ## Parent corner
-Press and hold the small house in the top-right for one second. Cars also lets you add real photos from the phone there.
+Press and hold the house button (top-left) until the ring fills to go back to the home screen. On Cars, press and hold the small camera (top-right) to add real photos from the phone.
+
+## Sounds
+Real recordings live in `sounds/` (credits in `sounds/CREDITS.md`). To swap one, replace the mp3 with the same name and bump `VERSION` in `sw.js`.
 
 ## Adding a game later
 1. Add `mygame.html` to the folder.

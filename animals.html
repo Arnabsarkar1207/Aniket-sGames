@@ -14,6 +14,7 @@
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
 <style>
   :root {
     box-sizing: border-box;
@@ -84,39 +85,19 @@
   }
   .dots i { width: 9px; height: 9px; border-radius: 50%; background: rgba(255,255,255,.6); transition: transform .2s, background .2s; }
   .dots i.on { background: #fff; transform: scale(1.5); }
-  #parent {
-    position: fixed; right: 8px; top: calc(env(safe-area-inset-top, 0px) + 4px); z-index: 20;
-    width: 30px; height: 30px; border-radius: 50%; border: 0; padding: 0; font-size: 14px;
-    background: rgba(255,255,255,.35); opacity: .6;
-  }
-  #panel {
-    position: fixed; inset: 0; z-index: 30; display: none; align-items: center; justify-content: center;
-    background: rgba(20,20,30,.6); padding: 24px;
-  }
-  #panel.open { display: flex; }
-  #panel .box { background: #fff; color: var(--ink); border-radius: 22px; padding: 22px; width: min(92vw, 380px); text-align: center; }
-  #panel h2 { margin: 0 0 12px; font-size: 26px; }
-  #panel button {
-    display: block; width: 100%; margin-top: 10px; padding: 14px; border: 0; border-radius: 14px;
-    font: inherit; font-size: 20px; font-weight: 800; background: #2f8cf0; color: #fff;
-  }
-  #panel button.alt { background: #e9ebf0; color: var(--ink); }
   @media (prefers-reduced-motion: reduce) {
-    .slide.enter .animal, .animal.wiggle, .hint { animation: none; }
+    .slide.enter .animal, .hint { animation: none; }
   }
 </style>
 </head>
 <body>
 <div class="dots" id="dots"></div>
-<button id="parent" aria-label="Parent options (press and hold)">🏠</button>
-<div id="panel"><div class="box">
-  <h2>Parent corner</h2>
-  <button id="homeBtn">Back to home</button>
-  <button id="closeBtn" class="alt">Close</button>
-</div></div>
 <main class="deck" id="deck"></main>
 
+<script src="shared.js"></script>
 <script>
+TG.holdButton({ emoji: '🏠', side: 'left', label: 'Home (press and hold)', hint: 'Hold to go home', onDone: () => { location.href = 'index.html'; } });
+
 // ---------- animal faces (viewBox 200 x 200) ----------
 const S = '#2b2b3a';
 function eye(x, y, r = 8) {
@@ -250,126 +231,31 @@ frog: `<svg viewBox="0 0 200 200">
 };
 
 const animals = [
-  { key: 'cow',      name: 'Cow',      say: 'Moo!',         bg: '#c9ecff' },
-  { key: 'dog',      name: 'Dog',      say: 'Woof woof!',   bg: '#ffe3a8' },
-  { key: 'cat',      name: 'Cat',      say: 'Meow!',        bg: '#e3d4ff' },
-  { key: 'duck',     name: 'Duck',     say: 'Quack quack!', bg: '#bff0d4' },
-  { key: 'sheep',    name: 'Sheep',    say: 'Baa!',         bg: '#ffd0dc' },
-  { key: 'pig',      name: 'Pig',      say: 'Oink oink!',   bg: '#fff0b3' },
-  { key: 'horse',    name: 'Horse',    say: 'Neigh!',       bg: '#c7e0ff' },
-  { key: 'lion',     name: 'Lion',     say: 'Roar!',        bg: '#ffd9b0' },
-  { key: 'elephant', name: 'Elephant', say: 'Toot toot!',   bg: '#d4f0d0' },
-  { key: 'frog',     name: 'Frog',     say: 'Ribbit!',      bg: '#ffe0ec' },
+  { key: 'cow',      name: 'Cow',      say: 'Moo!',         bg: '#c9ecff', fx: ['🌼', '❤️', '🌿', '⭐'] },
+  { key: 'dog',      name: 'Dog',      say: 'Woof woof!',   bg: '#ffe3a8', fx: ['🦴', '❤️', '⭐', '🐾'] },
+  { key: 'cat',      name: 'Cat',      say: 'Meow!',        bg: '#e3d4ff', fx: ['🐟', '❤️', '⭐', '🐾'] },
+  { key: 'duck',     name: 'Duck',     say: 'Quack quack!', bg: '#bff0d4', fx: ['💧', '🫧', '⭐', '🐥'] },
+  { key: 'sheep',    name: 'Sheep',    say: 'Baa!',         bg: '#ffd0dc', fx: ['☁️', '❤️', '🌸', '⭐'] },
+  { key: 'pig',      name: 'Pig',      say: 'Oink oink!',   bg: '#fff0b3', fx: ['🍎', '❤️', '🌽', '⭐'] },
+  { key: 'horse',    name: 'Horse',    say: 'Neigh!',       bg: '#c7e0ff', fx: ['🥕', '🍎', '⭐', '❤️'] },
+  { key: 'lion',     name: 'Lion',     say: 'Roar!',        bg: '#ffd9b0', fx: ['🔥', '⭐', '👑', '✨'] },
+  { key: 'elephant', name: 'Elephant', say: 'Toot toot!',   bg: '#d4f0d0', fx: ['💦', '🥜', '⭐', '🎈'] },
+  { key: 'frog',     name: 'Frog',     say: 'Ribbit!',      bg: '#ffe0ec', fx: ['🪰', '🫧', '💚', '⭐'] },
 ];
+TG.preload(animals.map(a => a.key));
 
-// ---------- synthesized sounds (Web Audio, no files needed) ----------
-let ac = null, master = null;
-function audio() {
-  if (!ac) {
-    const AC = window.AudioContext || window.webkitAudioContext;
-    ac = new AC();
-    const comp = ac.createDynamicsCompressor();
-    master = ac.createGain(); master.gain.value = 0.9;
-    master.connect(comp); comp.connect(ac.destination);
-  }
-  if (ac.state === 'suspended') ac.resume();
-  return ac;
-}
-function chain(src, filters) {
-  let node = src;
-  (filters || []).forEach(([type, f, q]) => {
-    const b = ac.createBiquadFilter(); b.type = type; b.frequency.value = f; b.Q.value = q || 1;
-    node.connect(b); node = b;
-  });
-  return node;
-}
-function shape(node, t0, dur, vol, a, r) {
-  const g = ac.createGain();
-  g.gain.setValueAtTime(0, t0);
-  g.gain.linearRampToValueAtTime(vol, t0 + a);
-  g.gain.setValueAtTime(vol, Math.max(t0 + a, t0 + dur - r));
-  g.gain.linearRampToValueAtTime(0, t0 + dur);
-  node.connect(g); g.connect(master);
-}
-function tone(o) {
-  const t0 = ac.currentTime + (o.at || 0), dur = o.dur;
-  const osc = ac.createOscillator(); osc.type = o.type || 'sawtooth';
-  const p = o.pts;
-  osc.frequency.setValueAtTime(p[0][1], t0 + p[0][0]);
-  for (let i = 1; i < p.length; i++) osc.frequency.linearRampToValueAtTime(p[i][1], t0 + p[i][0]);
-  if (o.vib) {
-    const l = ac.createOscillator(), lg = ac.createGain();
-    l.frequency.value = o.vib[0]; lg.gain.value = o.vib[1];
-    l.connect(lg); lg.connect(osc.frequency); l.start(t0); l.stop(t0 + dur + 0.1);
-  }
-  shape(chain(osc, o.filters), t0, dur, o.vol ?? 0.6, o.a ?? 0.03, o.r ?? 0.08);
-  osc.start(t0); osc.stop(t0 + dur + 0.05);
-}
-function noise(o) {
-  const t0 = ac.currentTime + (o.at || 0);
-  const len = Math.max(1, Math.floor(ac.sampleRate * o.dur));
-  const buf = ac.createBuffer(1, len, ac.sampleRate), d = buf.getChannelData(0);
-  for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
-  const src = ac.createBufferSource(); src.buffer = buf;
-  shape(chain(src, o.filters), t0, o.dur, o.vol ?? 0.4, o.a ?? 0.02, o.r ?? 0.1);
-  src.start(t0); src.stop(t0 + o.dur + 0.05);
-}
-
-const SOUND = {
-  cow() {
-    tone({ pts: [[0, 140], [.35, 178], [.9, 150], [1.3, 105]], dur: 1.4, vib: [5, 6], filters: [['lowpass', 1100, 1], ['bandpass', 520, 2]], vol: 1.6, a: .12, r: .3 });
-    tone({ type: 'sine', pts: [[0, 70], [1.3, 52]], dur: 1.4, vol: .4, a: .15, r: .3 });
-  },
-  dog() {
-    [0, .3].forEach(at => {
-      tone({ at, pts: [[0, 420], [.16, 220]], dur: .2, filters: [['lowpass', 1500, 1], ['bandpass', 900, 1.2]], vol: 1.8, a: .01, r: .08 });
-      noise({ at, dur: .12, filters: [['bandpass', 1100, 1]], vol: .5, a: .005, r: .08 });
-    });
-  },
-  cat() {
-    tone({ pts: [[0, 420], [.18, 760], [.5, 820], [.85, 430]], dur: .9, vib: [6, 15], filters: [['bandpass', 1300, 2.5]], vol: 2, a: .12, r: .25 });
-    tone({ type: 'sine', pts: [[0, 840], [.18, 1520], [.5, 1640], [.85, 860]], dur: .9, vol: .12, a: .12, r: .25 });
-  },
-  duck() {
-    [0, .24, .48].forEach(at => tone({ at, pts: [[0, 620], [.18, 380]], dur: .2, vib: [70, 90], filters: [['bandpass', 1250, 4]], vol: 2.2, a: .01, r: .06 }));
-  },
-  sheep() {
-    tone({ pts: [[0, 360], [.4, 330], [.85, 280]], dur: .9, vib: [14, 28], filters: [['bandpass', 1100, 4]], vol: 2.2, a: .06, r: .2 });
-  },
-  pig() {
-    [0, .34].forEach(at => {
-      tone({ at, pts: [[0, 180], [.07, 330], [.28, 170]], dur: .3, vib: [30, 25], filters: [['lowpass', 900, 1], ['bandpass', 600, 2]], vol: 2.2, a: .01, r: .1 });
-      noise({ at, dur: .25, filters: [['bandpass', 500, 2]], vol: .35, a: .02, r: .15 });
-    });
-  },
-  horse() {
-    tone({ pts: [[0, 520], [.18, 1050], [.5, 900], [1.15, 340]], dur: 1.2, vib: [11, 45], filters: [['bandpass', 1600, 2]], vol: 2.2, a: .08, r: .3 });
-    noise({ dur: 1.1, filters: [['bandpass', 2200, 1.5]], vol: .22, a: .1, r: .4 });
-  },
-  lion() {
-    noise({ dur: 1.7, filters: [['lowpass', 900, 1], ['bandpass', 350, .8]], vol: 2.2, a: .15, r: .5 });
-    tone({ pts: [[0, 95], [.4, 110], [1.7, 60]], dur: 1.7, vib: [28, 18], filters: [['lowpass', 600, 1]], vol: 1.4, a: .15, r: .5 });
-  },
-  elephant() {
-    tone({ pts: [[0, 260], [.25, 880], [.8, 760], [1.2, 420]], dur: 1.25, vib: [9, 30], filters: [['bandpass', 1500, 2]], vol: 2.2, a: .06, r: .3 });
-    noise({ dur: 1.1, filters: [['bandpass', 2600, 1]], vol: .2, a: .1, r: .4 });
-  },
-  frog() {
-    [0, .16, .5, .66].forEach((at, i) => tone({
-      at, type: 'square', pts: [[0, i % 2 ? 260 : 170], [.12, i % 2 ? 200 : 300]], dur: .14, vib: [45, 40],
-      filters: [['lowpass', 900, 1], ['bandpass', 420, 3]], vol: 2.2, a: .01, r: .05
-    }));
-  }
-};
-
-// ---------- parent corner (press and hold the little house) ----------
-const panel = document.getElementById('panel');
-const pb = document.getElementById('parent');
-let holdT = null;
-pb.addEventListener('pointerdown', () => { holdT = setTimeout(() => panel.classList.add('open'), 700); });
-['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => pb.addEventListener(ev, () => clearTimeout(holdT)));
-document.getElementById('closeBtn').onclick = () => panel.classList.remove('open');
-document.getElementById('homeBtn').onclick = () => { location.href = 'index.html'; };
+// ---------- tap reactions (each tap does the next one) ----------
+const REACT = [
+  el => el.animate([{ transform: 'translateY(0) scale(1,1)' }, { transform: 'translateY(0) scale(1.18,.82)', offset: .15 },
+    { transform: 'translateY(-9vh) scale(.9,1.12)', offset: .5 }, { transform: 'translateY(0) scale(1.12,.88)', offset: .8 },
+    { transform: 'translateY(0) scale(1,1)' }], { duration: 650, easing: 'ease-out' }),
+  el => el.animate([{ transform: 'rotate(0)' }, { transform: 'rotate(-12deg) scale(1.1)' }, { transform: 'rotate(10deg) scale(1.1)' },
+    { transform: 'rotate(-6deg) scale(1.05)' }, { transform: 'rotate(0)' }], { duration: 650, easing: 'ease-in-out' }),
+  el => el.animate([{ transform: 'rotate(0) scale(1)' }, { transform: 'rotate(180deg) scale(1.2)' }, { transform: 'rotate(360deg) scale(1)' }],
+    { duration: 750, easing: 'cubic-bezier(.3,.8,.4,1)' }),
+  el => el.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.3)', offset: .3 }, { transform: 'scale(.92)', offset: .6 }, { transform: 'scale(1)' }],
+    { duration: 600, easing: 'ease-out' }),
+];
 
 // ---------- deck ----------
 const deck = document.getElementById('deck');
@@ -386,12 +272,14 @@ animals.forEach((a, i) => {
   dotsEl.appendChild(document.createElement('i'));
 
   const an = s.querySelector('.animal'), bub = s.querySelector('.bubble');
-  an.addEventListener('click', () => {
-    try { audio(); SOUND[a.key](); } catch (e) {}
-    an.classList.remove('wiggle'); void an.offsetWidth; an.classList.add('wiggle');
+  let taps = 0;
+  an.addEventListener('pointerdown', e => {
+    TG.play(a.key);
+    REACT[taps++ % REACT.length](an);
+    TG.pulse(an, 3);
+    TG.burst(e.clientX, e.clientY, a.fx || ['❤️', '⭐', '🎵'], 9);
     bub.classList.remove('show'); void bub.offsetWidth; bub.classList.add('show');
   });
-  an.addEventListener('animationend', e => { if (e.animationName === 'wiggle') an.classList.remove('wiggle'); });
 });
 const slides = [...deck.children], dots = [...dotsEl.children];
 let current = -1;
@@ -409,7 +297,7 @@ const io = new IntersectionObserver(entries => {
   });
 }, { root: deck, threshold: [0.6] });
 slides.forEach(s => io.observe(s));
-if ('serviceWorker' in navigator) { window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {})); }
+TG.registerSW();
 </script>
 </body>
 </html>
