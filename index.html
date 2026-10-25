@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Toddler Games</title>
+<meta name="theme-color" content="#8fd3ff">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Toddler Games">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    box-sizing: border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    --ink: #2b2b3a;
+  }
+  *, *::before, *::after { box-sizing: inherit; }
+  html, body { min-height: 100%; margin: 0; }
+  body {
+    background: linear-gradient(#bfe6ff, #eaf8ff 60%, #d8f3d0);
+    background-attachment: fixed;
+    font-family: "Baloo 2", ui-rounded, "Arial Rounded MT Bold", "Trebuchet MS", system-ui, sans-serif;
+    -webkit-tap-highlight-color: transparent; -webkit-user-select: none; user-select: none;
+  }
+  .grid {
+    display: grid; grid-template-columns: 1fr; gap: 22px; padding: 22px 20px 30px; max-width: 900px; margin: 0 auto;
+  }
+  @media (min-width: 640px) { .grid { grid-template-columns: 1fr 1fr; } }
+  .tile {
+    position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 6px; min-height: max(230px, 38vh); padding: 18px 14px 12px; border-radius: 36px; text-decoration: none;
+    border: 6px solid #fff; box-shadow: 0 8px 0 rgba(43,43,58,.18); overflow: hidden;
+    transition: transform .12s ease, box-shadow .12s ease;
+  }
+  .tile:active { transform: translateY(6px) scale(.98); box-shadow: 0 2px 0 rgba(43,43,58,.18); }
+  .art { width: min(78%, 360px); flex: 1 1 auto; display: flex; align-items: center; justify-content: center; }
+  .art svg { width: 100%; max-height: 24vh; height: auto; display: block; overflow: visible; }
+  .label { font-size: clamp(40px, 11vw, 64px); font-weight: 800; color: #fff; line-height: 1; text-shadow: 0 4px 0 rgba(0,0,0,.22); }
+  @media (prefers-reduced-motion: reduce) { .tile { transition: none; } }
+</style>
+</head>
+<body>
+<main class="grid" id="grid"></main>
+
+<script>
+// ---- tile art (reuses the car + animal drawings) ----
+let uid = 0;
+function rim(cx, cy, r) {
+  let sp = '';
+  for (let i = 0; i < 5; i++) {
+    const a = (i * 72 - 90) * Math.PI / 180;
+    sp += `<line x1="${cx}" y1="${cy}" x2="${(cx + Math.cos(a) * r * 0.66).toFixed(1)}" y2="${(cy + Math.sin(a) * r * 0.66).toFixed(1)}" stroke="#6d7480" stroke-width="3.2" stroke-linecap="round"/>`;
+  }
+  return `<g class="wheel"><circle cx="${cx}" cy="${cy}" r="${r}" fill="#17171d"/>
+  <circle cx="${cx}" cy="${cy}" r="${r * 0.68}" fill="#dfe3ea"/>
+  <circle cx="${cx}" cy="${cy}" r="${r * 0.52}" fill="#bfc5cf"/>${sp}
+  <circle cx="${cx}" cy="${cy}" r="${r * 0.13}" fill="#3b3f48"/></g>`;
+}
+function build(o) {
+  const id = 'c' + (uid++);
+  const wells = o.wheels.map(([x, y, r]) => `<circle cx="${x}" cy="${y}" r="${r + 6}" fill="#101017"/>`).join('');
+  const rims = o.wheels.map(([x, y, r]) => rim(x, y, r)).join('');
+  const flares = o.flare ? o.wheels.map(([x, y, r]) => `<path d="M${x - r - 10} ${y - 2} A${r + 10} ${r + 10} 0 0 1 ${x + r + 10} ${y - 2}" fill="none" stroke="#262630" stroke-width="6"/>`).join('') : '';
+  const pillars = (o.pillars || []).map(([x, y1, y2]) => `<line x1="${x}" y1="${y1}" x2="${x}" y2="${y2}" stroke="${o.color}" stroke-width="7"/>`).join('');
+  const handles = (o.handles || []).map(([x, y]) => `<rect x="${x}" y="${y}" width="15" height="4" rx="2" fill="#000" opacity=".35"/>`).join('');
+  return `<svg viewBox="0 0 320 160" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="sh${id}" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fff" stop-opacity=".5"/><stop offset=".42" stop-color="#fff" stop-opacity="0"/>
+      <stop offset="1" stop-color="#000" stop-opacity=".32"/></linearGradient>
+    <linearGradient id="gl${id}" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#a9d7f2"/><stop offset="1" stop-color="#2b4058"/></linearGradient>
+    <clipPath id="cp${id}"><path d="${o.body}"/></clipPath>
+  </defs>
+  <ellipse cx="160" cy="143" rx="146" ry="6" fill="#000" opacity=".28"/>
+  ${o.pre || ''}
+  <path d="${o.body}" fill="${o.color}" stroke="rgba(0,0,0,.28)" stroke-width="1.6" stroke-linejoin="round"/>
+  <g clip-path="url(#cp${id})">${wells}</g>
+  <path d="${o.glass}" fill="url(#gl${id})"/>
+  <path d="${o.glass}" fill="none" stroke="rgba(0,0,0,.35)" stroke-width="1.5"/>
+  ${pillars}
+  <path d="${o.doors}" stroke="rgba(0,0,0,.28)" stroke-width="1.6" fill="none"/>
+  ${handles}
+  <path d="${o.body}" fill="url(#sh${id})"/>
+  <path d="${o.head}" fill="#fff6c4" stroke="rgba(0,0,0,.4)" stroke-width="1.2"/>
+  <path d="${o.tail}" fill="#e5322d" stroke="rgba(0,0,0,.4)" stroke-width="1.2"/>
+  ${o.extra || ''}${flares}${rims}
+  </svg>`;
+}
+
+const WRANG = {  // Jeep Wrangler
+  body: 'M12 114 V80 Q12 74 20 74 H60 L66 46 H214 L238 74 H300 Q310 74 310 84 V114Z',
+  glass: 'M72 70 L76 52 H208 L226 70Z', pillars: [[142, 52, 70]],
+  doors: 'M142 72 V112 M216 76 V112', handles: [[116, 84], [168, 84]],
+  head: 'M294 86 a8 8 0 1 0 0.1 0Z', tail: 'M14 96 H24 V104 H14Z',
+  extra: '<path d="M226 70 L208 50" stroke="#1c1c22" stroke-width="4" stroke-linecap="round"/><path d="M62 48 H216" stroke="#1c1c22" stroke-width="5" stroke-linecap="round"/><ellipse cx="8" cy="92" rx="10" ry="20" fill="#17171d"/><path d="M84 112 H226" stroke="#1c1c22" stroke-width="5" stroke-linecap="round"/>',
+  wheels: [[84, 116, 27], [242, 116, 27]], flare: true
+};
+const S = '#2b2b3a';
+function eye(x, y, r = 8) {
+  return `<circle cx="${x}" cy="${y}" r="${r}" fill="#222"/><circle cx="${x + r * .35}" cy="${y - r * .35}" r="${r * .32}" fill="#fff"/>`;
+}
+
+const COW = `<svg viewBox="0 0 200 200">
+  <ellipse cx="38" cy="80" rx="27" ry="14" transform="rotate(-20 38 80)" fill="#fff" stroke="${S}" stroke-width="3.5"/>
+  <ellipse cx="162" cy="80" rx="27" ry="14" transform="rotate(20 162 80)" fill="#fff" stroke="${S}" stroke-width="3.5"/>
+  <path d="M66 54 Q56 30 72 22 Q72 40 82 52Z" fill="#eadcb8" stroke="${S}" stroke-width="3"/>
+  <path d="M134 54 Q144 30 128 22 Q128 40 118 52Z" fill="#eadcb8" stroke="${S}" stroke-width="3"/>
+  <ellipse cx="100" cy="102" rx="54" ry="62" fill="#fff" stroke="${S}" stroke-width="3.5"/>
+  <path d="M50 74 Q56 46 94 56 Q90 90 62 100 Q44 96 50 74Z" fill="#2b2b2b"/>
+  <circle cx="78" cy="92" r="10" fill="#fff" stroke="${S}" stroke-width="2.5"/>${eye(78, 93, 6)}
+  <circle cx="122" cy="92" r="10" fill="#fff" stroke="${S}" stroke-width="2.5"/>${eye(122, 93, 6)}
+  <ellipse cx="100" cy="146" rx="37" ry="27" fill="#ffb4c0" stroke="${S}" stroke-width="3.5"/>
+  <ellipse cx="87" cy="146" rx="5" ry="8" fill="#c9586f"/><ellipse cx="113" cy="146" rx="5" ry="8" fill="#c9586f"/>
+</svg>`;
+
+// ---- add a new game by adding one line here ----
+const GAMES = [
+  { href: 'cars.html',    label: 'Cars',    bg: '#8fd3ff', art: build({ ...WRANG, color: '#ffc928' }) },
+  { href: 'animals.html', label: 'Animals', bg: '#ffb86b', art: COW },
+];
+
+const grid = document.getElementById('grid');
+GAMES.forEach(g => {
+  const a = document.createElement('a');
+  a.className = 'tile'; a.href = g.href; a.style.background = g.bg;
+  a.innerHTML = `<div class="art">${g.art}</div><div class="label">${g.label}</div>`;
+  grid.appendChild(a);
+});
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+}
+</script>
+</body>
+</html>

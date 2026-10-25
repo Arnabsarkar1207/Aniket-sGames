@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Animals</title>
+<meta name="theme-color" content="#8fd3ff">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Toddler Games">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" href="icons/icon-192.png">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    box-sizing: border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    --ink: #2b2b3a;
+  }
+  html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+  *, *::before, *::after { box-sizing: inherit; }
+  html, body { height: 100%; margin: 0; background: #c9ecff; overflow: hidden; }
+  body {
+    font-family: "Baloo 2", ui-rounded, "Arial Rounded MT Bold", "Trebuchet MS", system-ui, sans-serif;
+    -webkit-tap-highlight-color: transparent; -webkit-user-select: none; user-select: none;
+  }
+  .deck {
+    display: flex; height: 100%; overflow-x: auto; overflow-y: hidden;
+    scroll-snap-type: x mandatory; scrollbar-width: none; -webkit-overflow-scrolling: touch; scroll-behavior: smooth;
+  }
+  .deck::-webkit-scrollbar { display: none; }
+  .slide {
+    flex: 0 0 100%; height: 100%; scroll-snap-align: center; scroll-snap-stop: always;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    position: relative; overflow: hidden;
+  }
+  .sun { position: absolute; top: 9%; right: 8%; width: 16vmin; height: 16vmin; border-radius: 50%; background: rgba(255,255,255,.6); }
+  .hill {
+    position: absolute; left: -15%; right: -15%; bottom: -14%; height: 36%;
+    border-radius: 50% 50% 0 0; background: #7fd07a;
+  }
+  .hill::after {
+    content: ""; position: absolute; left: 0; right: 0; top: 0; bottom: 0; border-radius: inherit;
+    background: radial-gradient(ellipse at 30% 0%, rgba(255,255,255,.25), transparent 60%);
+  }
+  .animal { position: relative; z-index: 2; width: min(80vw, 54vh); margin-top: 4vh; cursor: pointer; }
+  .animal svg { width: 100%; height: auto; display: block; overflow: visible; }
+  .slide.enter .animal { animation: pop .5s cubic-bezier(.2,.9,.3,1.3) both; }
+  .animal.wiggle { animation: wiggle .6s ease; }
+  @keyframes pop { from { transform: scale(.55) translateY(8vh); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  @keyframes wiggle {
+    0% { transform: rotate(0) scale(1); } 20% { transform: rotate(-5deg) scale(1.06); }
+    45% { transform: rotate(5deg) scale(1.06); } 70% { transform: rotate(-3deg) scale(1.03); } 100% { transform: rotate(0) scale(1); }
+  }
+  .bubble {
+    position: absolute; right: -6%; top: -6%; z-index: 5; background: #fff; color: var(--ink);
+    font-weight: 800; font-size: clamp(26px, 8vw, 46px); line-height: 1; padding: 10px 18px; border-radius: 26px;
+    box-shadow: 0 5px 0 rgba(0,0,0,.15); opacity: 0; transform: scale(.4); pointer-events: none; white-space: nowrap;
+  }
+  .bubble::after {
+    content: ""; position: absolute; left: 22px; bottom: -12px; border: 10px solid transparent; border-top-color: #fff; border-bottom: 0;
+  }
+  .bubble.show { animation: bub 1.6s ease both; }
+  @keyframes bub {
+    0% { opacity: 0; transform: scale(.4) rotate(-6deg); } 15% { opacity: 1; transform: scale(1.1) rotate(3deg); }
+    30% { transform: scale(1) rotate(0); } 80% { opacity: 1; transform: scale(1); } 100% { opacity: 0; transform: scale(.9); }
+  }
+  .name {
+    position: relative; z-index: 3; margin: 2vh 0 0; font-size: clamp(48px, 15vw, 100px); font-weight: 800; color: #fff;
+    line-height: 1; text-shadow: 0 5px 0 rgba(0,0,0,.22); text-align: center;
+  }
+  .hint {
+    position: absolute; right: 16px; top: 44%; z-index: 4; font-size: 54px; color: rgba(255,255,255,.95);
+    text-shadow: 0 3px 0 rgba(0,0,0,.25); animation: nudge 1.2s ease-in-out infinite; pointer-events: none;
+  }
+  @keyframes nudge { 0%,100% { transform: translateX(0); } 50% { transform: translateX(10px); } }
+  .dots {
+    position: fixed; left: 0; right: 0; top: calc(env(safe-area-inset-top, 0px) + 12px); z-index: 10;
+    display: flex; gap: 7px; justify-content: center; pointer-events: none;
+  }
+  .dots i { width: 9px; height: 9px; border-radius: 50%; background: rgba(255,255,255,.6); transition: transform .2s, background .2s; }
+  .dots i.on { background: #fff; transform: scale(1.5); }
+  #parent {
+    position: fixed; right: 8px; top: calc(env(safe-area-inset-top, 0px) + 4px); z-index: 20;
+    width: 30px; height: 30px; border-radius: 50%; border: 0; padding: 0; font-size: 14px;
+    background: rgba(255,255,255,.35); opacity: .6;
+  }
+  #panel {
+    position: fixed; inset: 0; z-index: 30; display: none; align-items: center; justify-content: center;
+    background: rgba(20,20,30,.6); padding: 24px;
+  }
+  #panel.open { display: flex; }
+  #panel .box { background: #fff; color: var(--ink); border-radius: 22px; padding: 22px; width: min(92vw, 380px); text-align: center; }
+  #panel h2 { margin: 0 0 12px; font-size: 26px; }
+  #panel button {
+    display: block; width: 100%; margin-top: 10px; padding: 14px; border: 0; border-radius: 14px;
+    font: inherit; font-size: 20px; font-weight: 800; background: #2f8cf0; color: #fff;
+  }
+  #panel button.alt { background: #e9ebf0; color: var(--ink); }
+  @media (prefers-reduced-motion: reduce) {
+    .slide.enter .animal, .animal.wiggle, .hint { animation: none; }
+  }
+</style>
+</head>
+<body>
+<div class="dots" id="dots"></div>
+<button id="parent" aria-label="Parent options (press and hold)">🏠</button>
+<div id="panel"><div class="box">
+  <h2>Parent corner</h2>
+  <button id="homeBtn">Back to home</button>
+  <button id="closeBtn" class="alt">Close</button>
+</div></div>
+<main class="deck" id="deck"></main>
+
+<script>
+// ---------- animal faces (viewBox 200 x 200) ----------
+const S = '#2b2b3a';
+function eye(x, y, r = 8) {
+  return `<circle cx="${x}" cy="${y}" r="${r}" fill="#222"/><circle cx="${x + r * .35}" cy="${y - r * .35}" r="${r * .32}" fill="#fff"/>`;
+}
+function scallops(cx, cy, R, r, n, fill, stroke) {
+  let s = '';
+  for (let i = 0; i < n; i++) {
+    const a = i * 2 * Math.PI / n;
+    s += `<circle cx="${(cx + Math.cos(a) * R).toFixed(1)}" cy="${(cy + Math.sin(a) * R).toFixed(1)}" r="${r}" fill="${fill}" stroke="${stroke}" stroke-width="3"/>`;
+  }
+  return s;
+}
+
+const FACE = {
+cow: `<svg viewBox="0 0 200 200">
+  <ellipse cx="38" cy="80" rx="27" ry="14" transform="rotate(-20 38 80)" fill="#fff" stroke="${S}" stroke-width="3.5"/>
+  <ellipse cx="162" cy="80" rx="27" ry="14" transform="rotate(20 162 80)" fill="#fff" stroke="${S}" stroke-width="3.5"/>
+  <path d="M66 54 Q56 30 72 22 Q72 40 82 52Z" fill="#eadcb8" stroke="${S}" stroke-width="3"/>
+  <path d="M134 54 Q144 30 128 22 Q128 40 118 52Z" fill="#eadcb8" stroke="${S}" stroke-width="3"/>
+  <ellipse cx="100" cy="102" rx="54" ry="62" fill="#fff" stroke="${S}" stroke-width="3.5"/>
+  <path d="M50 74 Q56 46 94 56 Q90 90 62 100 Q44 96 50 74Z" fill="#2b2b2b"/>
+  <circle cx="78" cy="92" r="10" fill="#fff" stroke="${S}" stroke-width="2.5"/>${eye(78, 93, 6)}
+  <circle cx="122" cy="92" r="10" fill="#fff" stroke="${S}" stroke-width="2.5"/>${eye(122, 93, 6)}
+  <ellipse cx="100" cy="146" rx="37" ry="27" fill="#ffb4c0" stroke="${S}" stroke-width="3.5"/>
+  <ellipse cx="87" cy="146" rx="5" ry="8" fill="#c9586f"/><ellipse cx="113" cy="146" rx="5" ry="8" fill="#c9586f"/>
+</svg>`,
+dog: `<svg viewBox="0 0 200 200">
+  <path d="M56 64 Q14 68 22 130 Q30 154 54 120Z" fill="#8a5a33" stroke="#3a2412" stroke-width="3.5"/>
+  <path d="M144 64 Q186 68 178 130 Q170 154 146 120Z" fill="#8a5a33" stroke="#3a2412" stroke-width="3.5"/>
+  <ellipse cx="100" cy="100" rx="52" ry="58" fill="#d9a066" stroke="#3a2412" stroke-width="3.5"/>
+  <circle cx="124" cy="88" r="21" fill="#8a5a33"/>
+  <circle cx="78" cy="90" r="10" fill="#fff"/>${eye(78, 91, 6)}
+  <circle cx="122" cy="90" r="10" fill="#fff"/>${eye(122, 91, 6)}
+  <ellipse cx="100" cy="132" rx="31" ry="25" fill="#f7e3c4" stroke="#3a2412" stroke-width="2.5"/>
+  <path d="M92 142 Q100 168 108 142Z" fill="#ff7a8a" stroke="#3a2412" stroke-width="2.5"/>
+  <path d="M100 128 V136 M100 136 Q88 148 77 140 M100 136 Q112 148 123 140" stroke="#3a2412" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <ellipse cx="100" cy="118" rx="13" ry="9" fill="#222"/><ellipse cx="96" cy="115" rx="4" ry="2.5" fill="#fff" opacity=".6"/>
+</svg>`,
+cat: `<svg viewBox="0 0 200 200">
+  <path d="M44 86 L46 20 L94 52Z" fill="#f59a3a" stroke="#6b3a10" stroke-width="3.5" stroke-linejoin="round"/>
+  <path d="M54 72 L56 38 L80 54Z" fill="#ffb8c4"/>
+  <path d="M156 86 L154 20 L106 52Z" fill="#f59a3a" stroke="#6b3a10" stroke-width="3.5" stroke-linejoin="round"/>
+  <path d="M146 72 L144 38 L120 54Z" fill="#ffb8c4"/>
+  <ellipse cx="100" cy="112" rx="60" ry="52" fill="#f59a3a" stroke="#6b3a10" stroke-width="3.5"/>
+  <path d="M100 62 V82 M84 66 L88 82 M116 66 L112 82" stroke="#c46a10" stroke-width="5" stroke-linecap="round"/>
+  <ellipse cx="100" cy="134" rx="28" ry="18" fill="#fff3e0"/>
+  <ellipse cx="72" cy="104" rx="12" ry="14" fill="#bff56a" stroke="#333" stroke-width="2.5"/><ellipse cx="72" cy="104" rx="4" ry="10" fill="#111"/>
+  <ellipse cx="128" cy="104" rx="12" ry="14" fill="#bff56a" stroke="#333" stroke-width="2.5"/><ellipse cx="128" cy="104" rx="4" ry="10" fill="#111"/>
+  <path d="M91 122 H109 L100 133Z" fill="#ff8fa3" stroke="#6b3a10" stroke-width="2" stroke-linejoin="round"/>
+  <path d="M100 133 Q92 146 82 140 M100 133 Q108 146 118 140" stroke="#6b3a10" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <path d="M68 130 L22 120 M68 138 L22 142 M132 130 L178 120 M132 138 L178 142" stroke="#6b3a10" stroke-width="2.5" stroke-linecap="round"/>
+</svg>`,
+duck: `<svg viewBox="0 0 200 200">
+  <path d="M92 42 Q82 18 106 22 Q98 30 110 42Z" fill="#ffd93b" stroke="#b88a00" stroke-width="3"/>
+  <circle cx="100" cy="100" r="62" fill="#ffd93b" stroke="#b88a00" stroke-width="3.5"/>
+  <circle cx="58" cy="116" r="11" fill="#ffa987" opacity=".55"/><circle cx="142" cy="116" r="11" fill="#ffa987" opacity=".55"/>
+  ${eye(74, 84, 8)}${eye(126, 84, 8)}
+  <ellipse cx="100" cy="124" rx="46" ry="22" fill="#ff9a1f" stroke="#b35c00" stroke-width="3.5"/>
+  <ellipse cx="100" cy="116" rx="34" ry="8" fill="#ffc15e" opacity=".8"/>
+  <circle cx="88" cy="118" r="2.6" fill="#b35c00"/><circle cx="112" cy="118" r="2.6" fill="#b35c00"/>
+  <path d="M58 128 Q100 146 142 128" stroke="#b35c00" stroke-width="3" fill="none" stroke-linecap="round"/>
+</svg>`,
+sheep: `<svg viewBox="0 0 200 200">
+  ${scallops(100, 98, 58, 26, 12, '#fff', '#cfd4dc')}
+  <circle cx="100" cy="98" r="56" fill="#fff"/>
+  <ellipse cx="60" cy="102" rx="16" ry="8" transform="rotate(25 60 102)" fill="#3a3a46"/>
+  <ellipse cx="140" cy="102" rx="16" ry="8" transform="rotate(-25 140 102)" fill="#3a3a46"/>
+  <ellipse cx="100" cy="116" rx="34" ry="44" fill="#3a3a46" stroke="#1d1d26" stroke-width="3"/>
+  <circle cx="84" cy="70" r="15" fill="#fff" stroke="#cfd4dc" stroke-width="3"/><circle cx="116" cy="70" r="15" fill="#fff" stroke="#cfd4dc" stroke-width="3"/><circle cx="100" cy="64" r="17" fill="#fff" stroke="#cfd4dc" stroke-width="3"/>
+  <circle cx="86" cy="104" r="9" fill="#fff"/>${eye(86, 105, 5.5)}
+  <circle cx="114" cy="104" r="9" fill="#fff"/>${eye(114, 105, 5.5)}
+  <ellipse cx="100" cy="138" rx="11" ry="7" fill="#ff9bb0"/>
+  <path d="M100 145 Q92 152 86 148 M100 145 Q108 152 114 148" stroke="#ff9bb0" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+</svg>`,
+pig: `<svg viewBox="0 0 200 200">
+  <path d="M46 66 L28 26 L82 44Z" fill="#ff9fb5" stroke="#b04a68" stroke-width="3.5" stroke-linejoin="round"/>
+  <path d="M154 66 L172 26 L118 44Z" fill="#ff9fb5" stroke="#b04a68" stroke-width="3.5" stroke-linejoin="round"/>
+  <ellipse cx="100" cy="106" rx="62" ry="56" fill="#ffb3c6" stroke="#b04a68" stroke-width="3.5"/>
+  <circle cx="48" cy="118" r="11" fill="#ff8fab" opacity=".55"/><circle cx="152" cy="118" r="11" fill="#ff8fab" opacity=".55"/>
+  ${eye(72, 90, 7.5)}${eye(128, 90, 7.5)}
+  <ellipse cx="100" cy="124" rx="33" ry="24" fill="#ff8fab" stroke="#b04a68" stroke-width="3.5"/>
+  <ellipse cx="89" cy="124" rx="5" ry="9" fill="#b04a68"/><ellipse cx="111" cy="124" rx="5" ry="9" fill="#b04a68"/>
+  <path d="M78 158 Q100 170 122 158" stroke="#b04a68" stroke-width="3" fill="none" stroke-linecap="round"/>
+</svg>`,
+horse: `<svg viewBox="0 0 200 200">
+  <path d="M64 40 L54 6 L86 30Z" fill="#a8683a" stroke="#4a2a12" stroke-width="3.5" stroke-linejoin="round"/>
+  <path d="M136 40 L146 6 L114 30Z" fill="#a8683a" stroke="#4a2a12" stroke-width="3.5" stroke-linejoin="round"/>
+  <path d="M68 28 Q100 0 132 28 L130 74 Q100 54 70 74Z" fill="#3a2412"/>
+  <path d="M62 40 Q100 20 138 40 Q152 82 136 132 Q134 184 100 188 Q66 184 64 132 Q48 82 62 40Z" fill="#b9763f" stroke="#4a2a12" stroke-width="3.5"/>
+  <path d="M92 36 Q100 32 108 36 L106 122 Q100 128 94 122Z" fill="#fff" opacity=".9"/>
+  <path d="M82 40 Q100 62 118 40 Q100 28 82 40Z" fill="#3a2412"/>
+  <ellipse cx="100" cy="160" rx="29" ry="23" fill="#d9a77a" stroke="#4a2a12" stroke-width="3.5"/>
+  <ellipse cx="90" cy="160" rx="4.5" ry="7" fill="#4a2a12"/><ellipse cx="110" cy="160" rx="4.5" ry="7" fill="#4a2a12"/>
+  <path d="M86 177 Q100 184 114 177" stroke="#4a2a12" stroke-width="3" fill="none" stroke-linecap="round"/>
+  ${eye(70, 88, 7.5)}${eye(130, 88, 7.5)}
+</svg>`,
+lion: `<svg viewBox="0 0 200 200">
+  ${scallops(100, 104, 62, 22, 14, '#c26a1c', '#7a3d08')}
+  <circle cx="100" cy="104" r="64" fill="#d98a2b" stroke="#7a3d08" stroke-width="3"/>
+  <circle cx="60" cy="58" r="15" fill="#f2b15a" stroke="#7a3d08" stroke-width="3.5"/><circle cx="60" cy="58" r="7" fill="#ffb8c4"/>
+  <circle cx="140" cy="58" r="15" fill="#f2b15a" stroke="#7a3d08" stroke-width="3.5"/><circle cx="140" cy="58" r="7" fill="#ffb8c4"/>
+  <circle cx="100" cy="108" r="46" fill="#f6c36b" stroke="#7a3d08" stroke-width="3.5"/>
+  ${eye(82, 98, 7)}${eye(118, 98, 7)}
+  <ellipse cx="100" cy="126" rx="23" ry="16" fill="#fff1d0"/>
+  <path d="M90 114 H110 L100 127Z" fill="#5a2d12" stroke="#5a2d12" stroke-width="2" stroke-linejoin="round"/>
+  <path d="M100 127 V134 M100 134 Q90 146 80 139 M100 134 Q110 146 120 139" stroke="#5a2d12" stroke-width="3" fill="none" stroke-linecap="round"/>
+</svg>`,
+elephant: `<svg viewBox="0 0 200 200">
+  <ellipse cx="36" cy="100" rx="34" ry="46" fill="#9aa7b8" stroke="#4b5666" stroke-width="3.5"/>
+  <ellipse cx="42" cy="102" rx="19" ry="31" fill="#f0a7b5" opacity=".6"/>
+  <ellipse cx="164" cy="100" rx="34" ry="46" fill="#9aa7b8" stroke="#4b5666" stroke-width="3.5"/>
+  <ellipse cx="158" cy="102" rx="19" ry="31" fill="#f0a7b5" opacity=".6"/>
+  <ellipse cx="100" cy="94" rx="52" ry="56" fill="#a9b6c8" stroke="#4b5666" stroke-width="3.5"/>
+  <path d="M80 116 Q68 168 86 188 Q104 198 120 180 Q108 172 110 150 L120 116Z" fill="#a9b6c8" stroke="#4b5666" stroke-width="3.5" stroke-linejoin="round"/>
+  <path d="M88 136 H108 M86 152 H106 M88 168 H104" stroke="#4b5666" stroke-width="2.5" stroke-linecap="round" opacity=".6"/>
+  <path d="M76 132 Q58 154 74 168 Q70 152 84 140Z" fill="#fff" stroke="#8a8f99" stroke-width="2.5"/>
+  <path d="M124 132 Q142 154 126 168 Q130 152 116 140Z" fill="#fff" stroke="#8a8f99" stroke-width="2.5"/>
+  ${eye(78, 86, 7.5)}${eye(122, 86, 7.5)}
+</svg>`,
+frog: `<svg viewBox="0 0 200 200">
+  <ellipse cx="100" cy="122" rx="68" ry="50" fill="#5fcf5a" stroke="#2c7a2a" stroke-width="3.5"/>
+  <circle cx="64" cy="68" r="25" fill="#5fcf5a" stroke="#2c7a2a" stroke-width="3.5"/>
+  <circle cx="136" cy="68" r="25" fill="#5fcf5a" stroke="#2c7a2a" stroke-width="3.5"/>
+  <circle cx="64" cy="68" r="16" fill="#fff" stroke="#2c7a2a" stroke-width="2.5"/>${eye(66, 70, 8)}
+  <circle cx="136" cy="68" r="16" fill="#fff" stroke="#2c7a2a" stroke-width="2.5"/>${eye(134, 70, 8)}
+  <circle cx="92" cy="106" r="3.5" fill="#2c7a2a"/><circle cx="108" cy="106" r="3.5" fill="#2c7a2a"/>
+  <circle cx="52" cy="128" r="10" fill="#ff9aa6" opacity=".55"/><circle cx="148" cy="128" r="10" fill="#ff9aa6" opacity=".55"/>
+  <path d="M42 128 Q100 176 158 128" stroke="#2c7a2a" stroke-width="4.5" fill="none" stroke-linecap="round"/>
+</svg>`
+};
+
+const animals = [
+  { key: 'cow',      name: 'Cow',      say: 'Moo!',         bg: '#c9ecff' },
+  { key: 'dog',      name: 'Dog',      say: 'Woof woof!',   bg: '#ffe3a8' },
+  { key: 'cat',      name: 'Cat',      say: 'Meow!',        bg: '#e3d4ff' },
+  { key: 'duck',     name: 'Duck',     say: 'Quack quack!', bg: '#bff0d4' },
+  { key: 'sheep',    name: 'Sheep',    say: 'Baa!',         bg: '#ffd0dc' },
+  { key: 'pig',      name: 'Pig',      say: 'Oink oink!',   bg: '#fff0b3' },
+  { key: 'horse',    name: 'Horse',    say: 'Neigh!',       bg: '#c7e0ff' },
+  { key: 'lion',     name: 'Lion',     say: 'Roar!',        bg: '#ffd9b0' },
+  { key: 'elephant', name: 'Elephant', say: 'Toot toot!',   bg: '#d4f0d0' },
+  { key: 'frog',     name: 'Frog',     say: 'Ribbit!',      bg: '#ffe0ec' },
+];
+
+// ---------- synthesized sounds (Web Audio, no files needed) ----------
+let ac = null, master = null;
+function audio() {
+  if (!ac) {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    ac = new AC();
+    const comp = ac.createDynamicsCompressor();
+    master = ac.createGain(); master.gain.value = 0.9;
+    master.connect(comp); comp.connect(ac.destination);
+  }
+  if (ac.state === 'suspended') ac.resume();
+  return ac;
+}
+function chain(src, filters) {
+  let node = src;
+  (filters || []).forEach(([type, f, q]) => {
+    const b = ac.createBiquadFilter(); b.type = type; b.frequency.value = f; b.Q.value = q || 1;
+    node.connect(b); node = b;
+  });
+  return node;
+}
+function shape(node, t0, dur, vol, a, r) {
+  const g = ac.createGain();
+  g.gain.setValueAtTime(0, t0);
+  g.gain.linearRampToValueAtTime(vol, t0 + a);
+  g.gain.setValueAtTime(vol, Math.max(t0 + a, t0 + dur - r));
+  g.gain.linearRampToValueAtTime(0, t0 + dur);
+  node.connect(g); g.connect(master);
+}
+function tone(o) {
+  const t0 = ac.currentTime + (o.at || 0), dur = o.dur;
+  const osc = ac.createOscillator(); osc.type = o.type || 'sawtooth';
+  const p = o.pts;
+  osc.frequency.setValueAtTime(p[0][1], t0 + p[0][0]);
+  for (let i = 1; i < p.length; i++) osc.frequency.linearRampToValueAtTime(p[i][1], t0 + p[i][0]);
+  if (o.vib) {
+    const l = ac.createOscillator(), lg = ac.createGain();
+    l.frequency.value = o.vib[0]; lg.gain.value = o.vib[1];
+    l.connect(lg); lg.connect(osc.frequency); l.start(t0); l.stop(t0 + dur + 0.1);
+  }
+  shape(chain(osc, o.filters), t0, dur, o.vol ?? 0.6, o.a ?? 0.03, o.r ?? 0.08);
+  osc.start(t0); osc.stop(t0 + dur + 0.05);
+}
+function noise(o) {
+  const t0 = ac.currentTime + (o.at || 0);
+  const len = Math.max(1, Math.floor(ac.sampleRate * o.dur));
+  const buf = ac.createBuffer(1, len, ac.sampleRate), d = buf.getChannelData(0);
+  for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+  const src = ac.createBufferSource(); src.buffer = buf;
+  shape(chain(src, o.filters), t0, o.dur, o.vol ?? 0.4, o.a ?? 0.02, o.r ?? 0.1);
+  src.start(t0); src.stop(t0 + o.dur + 0.05);
+}
+
+const SOUND = {
+  cow() {
+    tone({ pts: [[0, 140], [.35, 178], [.9, 150], [1.3, 105]], dur: 1.4, vib: [5, 6], filters: [['lowpass', 1100, 1], ['bandpass', 520, 2]], vol: 1.6, a: .12, r: .3 });
+    tone({ type: 'sine', pts: [[0, 70], [1.3, 52]], dur: 1.4, vol: .4, a: .15, r: .3 });
+  },
+  dog() {
+    [0, .3].forEach(at => {
+      tone({ at, pts: [[0, 420], [.16, 220]], dur: .2, filters: [['lowpass', 1500, 1], ['bandpass', 900, 1.2]], vol: 1.8, a: .01, r: .08 });
+      noise({ at, dur: .12, filters: [['bandpass', 1100, 1]], vol: .5, a: .005, r: .08 });
+    });
+  },
+  cat() {
+    tone({ pts: [[0, 420], [.18, 760], [.5, 820], [.85, 430]], dur: .9, vib: [6, 15], filters: [['bandpass', 1300, 2.5]], vol: 2, a: .12, r: .25 });
+    tone({ type: 'sine', pts: [[0, 840], [.18, 1520], [.5, 1640], [.85, 860]], dur: .9, vol: .12, a: .12, r: .25 });
+  },
+  duck() {
+    [0, .24, .48].forEach(at => tone({ at, pts: [[0, 620], [.18, 380]], dur: .2, vib: [70, 90], filters: [['bandpass', 1250, 4]], vol: 2.2, a: .01, r: .06 }));
+  },
+  sheep() {
+    tone({ pts: [[0, 360], [.4, 330], [.85, 280]], dur: .9, vib: [14, 28], filters: [['bandpass', 1100, 4]], vol: 2.2, a: .06, r: .2 });
+  },
+  pig() {
+    [0, .34].forEach(at => {
+      tone({ at, pts: [[0, 180], [.07, 330], [.28, 170]], dur: .3, vib: [30, 25], filters: [['lowpass', 900, 1], ['bandpass', 600, 2]], vol: 2.2, a: .01, r: .1 });
+      noise({ at, dur: .25, filters: [['bandpass', 500, 2]], vol: .35, a: .02, r: .15 });
+    });
+  },
+  horse() {
+    tone({ pts: [[0, 520], [.18, 1050], [.5, 900], [1.15, 340]], dur: 1.2, vib: [11, 45], filters: [['bandpass', 1600, 2]], vol: 2.2, a: .08, r: .3 });
+    noise({ dur: 1.1, filters: [['bandpass', 2200, 1.5]], vol: .22, a: .1, r: .4 });
+  },
+  lion() {
+    noise({ dur: 1.7, filters: [['lowpass', 900, 1], ['bandpass', 350, .8]], vol: 2.2, a: .15, r: .5 });
+    tone({ pts: [[0, 95], [.4, 110], [1.7, 60]], dur: 1.7, vib: [28, 18], filters: [['lowpass', 600, 1]], vol: 1.4, a: .15, r: .5 });
+  },
+  elephant() {
+    tone({ pts: [[0, 260], [.25, 880], [.8, 760], [1.2, 420]], dur: 1.25, vib: [9, 30], filters: [['bandpass', 1500, 2]], vol: 2.2, a: .06, r: .3 });
+    noise({ dur: 1.1, filters: [['bandpass', 2600, 1]], vol: .2, a: .1, r: .4 });
+  },
+  frog() {
+    [0, .16, .5, .66].forEach((at, i) => tone({
+      at, type: 'square', pts: [[0, i % 2 ? 260 : 170], [.12, i % 2 ? 200 : 300]], dur: .14, vib: [45, 40],
+      filters: [['lowpass', 900, 1], ['bandpass', 420, 3]], vol: 2.2, a: .01, r: .05
+    }));
+  }
+};
+
+// ---------- parent corner (press and hold the little house) ----------
+const panel = document.getElementById('panel');
+const pb = document.getElementById('parent');
+let holdT = null;
+pb.addEventListener('pointerdown', () => { holdT = setTimeout(() => panel.classList.add('open'), 700); });
+['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => pb.addEventListener(ev, () => clearTimeout(holdT)));
+document.getElementById('closeBtn').onclick = () => panel.classList.remove('open');
+document.getElementById('homeBtn').onclick = () => { location.href = 'index.html'; };
+
+// ---------- deck ----------
+const deck = document.getElementById('deck');
+const dotsEl = document.getElementById('dots');
+animals.forEach((a, i) => {
+  const s = document.createElement('section');
+  s.className = 'slide'; s.style.background = a.bg;
+  s.innerHTML = `<div class="sun"></div><div class="hill"></div>
+    <div class="animal" role="button" aria-label="${a.name}: tap to hear it">
+      ${FACE[a.key]}<div class="bubble">${a.say}</div></div>
+    <h1 class="name">${a.name}</h1>
+    ${i === 0 ? '<div class="hint" aria-hidden="true">&#10140;</div>' : ''}`;
+  deck.appendChild(s);
+  dotsEl.appendChild(document.createElement('i'));
+
+  const an = s.querySelector('.animal'), bub = s.querySelector('.bubble');
+  an.addEventListener('click', () => {
+    try { audio(); SOUND[a.key](); } catch (e) {}
+    an.classList.remove('wiggle'); void an.offsetWidth; an.classList.add('wiggle');
+    bub.classList.remove('show'); void bub.offsetWidth; bub.classList.add('show');
+  });
+  an.addEventListener('animationend', e => { if (e.animationName === 'wiggle') an.classList.remove('wiggle'); });
+});
+const slides = [...deck.children], dots = [...dotsEl.children];
+let current = -1;
+const io = new IntersectionObserver(entries => {
+  entries.forEach(en => {
+    const i = slides.indexOf(en.target);
+    if (en.isIntersecting && en.intersectionRatio > 0.6 && i !== current) {
+      current = i;
+      dots.forEach((d, k) => d.classList.toggle('on', k === i));
+      slides.forEach(s => s.classList.remove('enter'));
+      void en.target.offsetWidth;
+      en.target.classList.add('enter');
+      const h = deck.querySelector('.hint'); if (h && i > 0) h.remove();
+    }
+  });
+}, { root: deck, threshold: [0.6] });
+slides.forEach(s => io.observe(s));
+if ('serviceWorker' in navigator) { window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {})); }
+</script>
+</body>
+</html>
